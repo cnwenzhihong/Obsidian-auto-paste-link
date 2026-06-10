@@ -4,8 +4,11 @@ export interface AutoPasteLinkSettings {
   addNewlineAfterImage: boolean;
   fetchSupportedSiteTitle: boolean;
   titleFetchTimeoutMs: number;
+  embedImageLinks: boolean;
+  embedVideoLinks: boolean;
   imageExtensions: string[];
   imageUrlPatterns: string[];
+  videoExtensions: string[];
 }
 
 export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
@@ -14,6 +17,8 @@ export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
   addNewlineAfterImage: true,
   fetchSupportedSiteTitle: true,
   titleFetchTimeoutMs: 3000,
+  embedImageLinks: true,
+  embedVideoLinks: true,
   imageExtensions: [
     "jpg",
     "jpeg",
@@ -27,6 +32,9 @@ export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
   imageUrlPatterns: [
     "^https?:\\/\\/(?:images\\.unsplash\\.com|i\\.imgur\\.com)\\/",
     "[?&](?:format|fm|type|mime)=([^&#]*)(?:jpg|jpeg|png|gif|webp|avif|svg)"
+  ],
+  videoExtensions: [
+    "mp4"
   ]
 };
 
@@ -39,8 +47,11 @@ export function normalizeSettings(value: Partial<AutoPasteLinkSettings>): AutoPa
     titleFetchTimeoutMs: normalizeTitleFetchTimeoutMs(
       value.titleFetchTimeoutMs ?? DEFAULT_SETTINGS.titleFetchTimeoutMs
     ),
+    embedImageLinks: value.embedImageLinks ?? DEFAULT_SETTINGS.embedImageLinks,
+    embedVideoLinks: value.embedVideoLinks ?? DEFAULT_SETTINGS.embedVideoLinks,
     imageExtensions: normalizeImageExtensions(value.imageExtensions ?? DEFAULT_SETTINGS.imageExtensions),
     imageUrlPatterns: normalizePatternList(value.imageUrlPatterns ?? DEFAULT_SETTINGS.imageUrlPatterns),
+    videoExtensions: normalizeVideoExtensions(value.videoExtensions ?? DEFAULT_SETTINGS.videoExtensions),
   };
 }
 
@@ -57,6 +68,10 @@ export function normalizeImageExtensions(value: string[] | string): string[] {
   return normalizeLineList(value)
     .map((item) => item.replace(/^\./, "").toLowerCase())
     .filter((item) => /^[a-z0-9]+$/.test(item));
+}
+
+export function normalizeVideoExtensions(value: string[] | string): string[] {
+  return normalizeImageExtensions(value);
 }
 
 export function normalizePatternList(value: string[] | string): string[] {

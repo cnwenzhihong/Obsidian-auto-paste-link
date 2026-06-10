@@ -5,6 +5,7 @@ import {
   normalizeImageExtensions,
   normalizePatternList,
   normalizeTitleFetchTimeoutMs,
+  normalizeVideoExtensions,
 } from "./pluginSettings";
 
 export class AutoPasteLinkSettingTab extends PluginSettingTab {
@@ -17,7 +18,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
     const text = getSettingText();
     containerEl.empty();
 
-    addSection(containerEl, text.titleCompletionSectionName, text.titleCompletionSectionDesc);
+    addSection(containerEl, text.titleCompletionSectionName);
 
     new Setting(containerEl)
       .setName(text.fetchSupportedSiteTitleName)
@@ -45,7 +46,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
       .setName(text.supportedSitesName)
       .setDesc(text.supportedSitesDesc);
 
-    addSection(containerEl, text.pasteBehaviorSectionName, text.pasteBehaviorSectionDesc);
+    addSection(containerEl, text.pasteBehaviorSectionName);
 
     new Setting(containerEl)
       .setName(text.useSelectionAsLinkTextName)
@@ -53,16 +54,6 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.useSelectionAsLinkText).onChange(async (value) => {
           this.plugin.settings.useSelectionAsLinkText = value;
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName(text.addNewlineAfterImageName)
-      .setDesc(text.addNewlineAfterImageDesc)
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.addNewlineAfterImage).onChange(async (value) => {
-          this.plugin.settings.addNewlineAfterImage = value;
           await this.plugin.saveSettings();
         })
       );
@@ -77,13 +68,35 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
         })
       );
 
-    addSection(containerEl, text.imageDetectionSectionName, text.imageDetectionSectionDesc);
+    addSection(containerEl, text.mediaDetectionSectionName);
 
-    const extensionSetting = new Setting(containerEl)
+    const imageSection = addSubsection(containerEl, text.imageSubsectionName);
+
+    new Setting(imageSection)
+      .setName(text.embedImageLinksName)
+      .setDesc(text.embedImageLinksDesc)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.embedImageLinks).onChange(async (value) => {
+          this.plugin.settings.embedImageLinks = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(imageSection)
+      .setName(text.addNewlineAfterImageName)
+      .setDesc(text.addNewlineAfterImageDesc)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.addNewlineAfterImage).onChange(async (value) => {
+          this.plugin.settings.addNewlineAfterImage = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    const imageExtensionSetting = new Setting(imageSection)
       .setName(text.imageExtensionsName)
       .setDesc(text.imageExtensionsDesc);
-    extensionSetting.settingEl.addClass("auto-paste-link-setting");
-    extensionSetting.addTextArea((area) =>
+    imageExtensionSetting.settingEl.addClass("auto-paste-link-extension-setting");
+    imageExtensionSetting.addTextArea((area) =>
       area
         .setValue(this.plugin.settings.imageExtensions.join("\n"))
         .onChange(async (value) => {
@@ -92,7 +105,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
         })
     );
 
-    const patternSetting = new Setting(containerEl)
+    const patternSetting = new Setting(imageSection)
       .setName(text.imageUrlPatternsName)
       .setDesc(text.imageUrlPatternsDesc);
     patternSetting.settingEl.addClass("auto-paste-link-setting");
@@ -104,15 +117,56 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
     );
+
+    const videoSection = addSubsection(containerEl, text.videoSubsectionName);
+
+    new Setting(videoSection)
+      .setName(text.embedVideoLinksName)
+      .setDesc(text.embedVideoLinksDesc)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.embedVideoLinks).onChange(async (value) => {
+          this.plugin.settings.embedVideoLinks = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    const videoExtensionSetting = new Setting(videoSection)
+      .setName(text.videoExtensionsName)
+      .setDesc(text.videoExtensionsDesc);
+    videoExtensionSetting.settingEl.addClass("auto-paste-link-extension-setting");
+    videoExtensionSetting.addTextArea((area) =>
+      area
+        .setValue(this.plugin.settings.videoExtensions.join("\n"))
+        .onChange(async (value) => {
+          this.plugin.settings.videoExtensions = normalizeVideoExtensions(value);
+          await this.plugin.saveSettings();
+        })
+    );
   }
 }
 
-function addSection(containerEl: HTMLElement, name: string, description: string): void {
+function addSection(containerEl: HTMLElement, name: string): void {
   new Setting(containerEl)
     .setName(name)
-    .setDesc(description)
     .setClass("auto-paste-link-section")
     .setHeading();
+}
+
+function addSubsection(containerEl: HTMLElement, name: string): HTMLElement {
+  const details = containerEl.createEl("details", {
+    cls: "auto-paste-link-subsection",
+    attr: {
+      open: "",
+    },
+  });
+  details.createEl("summary", {
+    cls: "auto-paste-link-subsection-summary",
+    text: name,
+  });
+
+  return details.createDiv({
+    cls: "auto-paste-link-subsection-content",
+  });
 }
 
 function createDescription(description: string, hint: string): DocumentFragment {

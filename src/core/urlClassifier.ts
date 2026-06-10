@@ -1,6 +1,6 @@
 import type { AutoPasteLinkSettings } from "../settings/pluginSettings";
 
-export type UrlKind = "normal-link" | "image-link" | "unsupported";
+export type UrlKind = "normal-link" | "image-link" | "video-link" | "unsupported";
 
 export interface UrlClassification {
   kind: UrlKind;
@@ -25,6 +25,13 @@ export function classifyUrlText(text: string, settings: AutoPasteLinkSettings): 
     };
   }
 
+  if (isVideoUrl(parsedUrl, settings)) {
+    return {
+      kind: "video-link",
+      url: candidate,
+    };
+  }
+
   return {
     kind: "normal-link",
     url: candidate,
@@ -32,6 +39,10 @@ export function classifyUrlText(text: string, settings: AutoPasteLinkSettings): 
 }
 
 function isImageUrl(rawUrl: string, parsedUrl: URL, settings: AutoPasteLinkSettings): boolean {
+  if (!settings.embedImageLinks) {
+    return false;
+  }
+
   const pathname = parsedUrl.pathname.toLowerCase();
   const extension = pathname.match(/\.([a-z0-9]+)$/)?.[1];
   if (extension && settings.imageExtensions.includes(extension)) {
@@ -45,6 +56,15 @@ function isImageUrl(rawUrl: string, parsedUrl: URL, settings: AutoPasteLinkSetti
       return false;
     }
   });
+}
+
+function isVideoUrl(parsedUrl: URL, settings: AutoPasteLinkSettings): boolean {
+  if (!settings.embedVideoLinks) {
+    return false;
+  }
+
+  const extension = parsedUrl.pathname.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
+  return extension ? settings.videoExtensions.includes(extension) : false;
 }
 
 function parseHttpUrl(value: string): URL | null {

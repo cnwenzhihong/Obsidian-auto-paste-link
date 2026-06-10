@@ -28,6 +28,59 @@ test("图片扩展名 URL 被识别为图片链接", () => {
   });
 });
 
+test("关闭图片嵌入后图片 URL 回退为普通链接", () => {
+  assert.deepEqual(
+    classifyUrlText("https://example.com/a/b/c.webp", {
+      ...DEFAULT_SETTINGS,
+      embedImageLinks: false,
+    }),
+    {
+      kind: "normal-link",
+      url: "https://example.com/a/b/c.webp",
+    }
+  );
+});
+
+test("MP4 URL 被识别为视频链接", () => {
+  assert.deepEqual(classifyUrlText("https://example.com/a/b/c.mp4", DEFAULT_SETTINGS), {
+    kind: "video-link",
+    url: "https://example.com/a/b/c.mp4",
+  });
+});
+
+test("带查询参数的 MP4 URL 仍被识别为视频链接", () => {
+  assert.deepEqual(classifyUrlText("https://example.com/video.mp4?token=abc&x=1", DEFAULT_SETTINGS), {
+    kind: "video-link",
+    url: "https://example.com/video.mp4?token=abc&x=1",
+  });
+});
+
+test("关闭视频嵌入后 MP4 URL 回退为普通链接", () => {
+  assert.deepEqual(
+    classifyUrlText("https://example.com/video.mp4", {
+      ...DEFAULT_SETTINGS,
+      embedVideoLinks: false,
+    }),
+    {
+      kind: "normal-link",
+      url: "https://example.com/video.mp4",
+    }
+  );
+});
+
+test("自定义视频扩展名可识别新增视频类型", () => {
+  assert.deepEqual(
+    classifyUrlText("https://example.com/video.mov", {
+      ...DEFAULT_SETTINGS,
+      videoExtensions: ["mov"],
+    }),
+    {
+      kind: "video-link",
+      url: "https://example.com/video.mov",
+    }
+  );
+});
+
 test("无扩展名图片 URL 可通过规则识别", () => {
   assert.deepEqual(classifyUrlText("https://images.unsplash.com/photo-1", DEFAULT_SETTINGS), {
     kind: "image-link",
@@ -90,6 +143,40 @@ test("图片链接默认插入后换行并把光标放到下一行开头", () =>
     {
       text: "![](https://example.com/a.jpg)\n",
       cursor: { line: 3, ch: 0 },
+    }
+  );
+});
+
+test("视频链接插入 HTML video 标签并换行", () => {
+  assert.deepEqual(
+    buildMarkdownInsertion({
+      kind: "video-link",
+      url: "https://example.com/video.mp4",
+      selection: "",
+      cursor: { line: 1, ch: 4 },
+      useSelectionAsLinkText: true,
+      addNewlineAfterImage: true,
+    }),
+    {
+      text: '<video src="https://example.com/video.mp4" controls muted autoplay loop></video>\n',
+      cursor: { line: 2, ch: 0 },
+    }
+  );
+});
+
+test("视频链接 src 会进行 HTML 属性转义", () => {
+  assert.deepEqual(
+    buildMarkdownInsertion({
+      kind: "video-link",
+      url: "https://example.com/video.mp4?token=abc&x=1",
+      selection: "",
+      cursor: { line: 0, ch: 0 },
+      useSelectionAsLinkText: true,
+      addNewlineAfterImage: true,
+    }),
+    {
+      text: '<video src="https://example.com/video.mp4?token=abc&amp;x=1" controls muted autoplay loop></video>\n',
+      cursor: { line: 1, ch: 0 },
     }
   );
 });

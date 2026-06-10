@@ -28,6 +28,10 @@ export function buildMarkdownInsertion(input: MarkdownInsertionInput): MarkdownI
     return buildImageInsertion(input);
   }
 
+  if (input.kind === "video-link") {
+    return buildVideoInsertion(input);
+  }
+
   return buildNormalLinkInsertion(input);
 }
 
@@ -70,8 +74,27 @@ function buildImageInsertion(input: MarkdownInsertionInput): MarkdownInsertion {
   };
 }
 
+function buildVideoInsertion(input: MarkdownInsertionInput): MarkdownInsertion {
+  const text = `<video src="${escapeHtmlAttribute(input.url)}" controls muted autoplay loop></video>\n`;
+  return {
+    text,
+    cursor: {
+      line: input.cursor.line + 1,
+      ch: 0,
+    },
+  };
+}
+
 export function escapeMarkdownLinkText(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function advancePosition(position: EditorPositionLike, text: string): EditorPositionLike {
