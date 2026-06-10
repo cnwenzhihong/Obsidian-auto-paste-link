@@ -1,0 +1,10 @@
+{
+  "id": "auto-paste-link",
+  "name": "Auto Paste Link",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Auto formats single pasted URLs as Markdown links or image embeds.",
+  "author": "cnwen",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

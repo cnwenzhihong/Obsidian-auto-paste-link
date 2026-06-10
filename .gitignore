@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+
+main.js
+*.map
+
+.env
+.env.*
+*.log
+.eslintcache
+.tsbuildinfo
+
+.DS_Store
+Thumbs.db

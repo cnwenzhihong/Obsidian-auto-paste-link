@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-auto-paste-link",
+  "version": "0.1.0",
+  "description": "Auto format single pasted URLs as Markdown links or images in Obsidian.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "node --experimental-default-type=module --test tests/*.test.ts"
+  },
+  "keywords": [
+    "obsidian",
+    "markdown",
+    "paste",
+    "link"
+  ],
+  "author": "cnwen",
+  "license": "MIT",
+  "devDependencies": {
+    "@codemirror/view": "6.38.6",
+    "@types/node": "latest",
+    "esbuild": "latest",
+    "obsidian": "1.13.0",
+    "typescript": "latest"
+  }
+}
