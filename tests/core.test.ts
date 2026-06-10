@@ -4,6 +4,15 @@ import { buildMarkdownInsertion } from "../src/core/markdownInserter.ts";
 import { classifyUrlText } from "../src/core/urlClassifier.ts";
 import { isInYamlFrontmatter } from "../src/core/yamlRangeDetector.ts";
 import { DEFAULT_SETTINGS } from "../src/settings/pluginSettings.ts";
+import {
+  cleanBilibiliTitle,
+  cleanFabTitle,
+  cleanYouTubeTitle,
+  extractHtmlTitle,
+  getSupportedTitleProvider,
+  resolveSupportedSiteTitle,
+  type TitleRequest,
+} from "../src/core/titleResolver.ts";
 
 test("普通 URL 被识别为普通链接", () => {
   assert.deepEqual(classifyUrlText("https://www.baidu.com", DEFAULT_SETTINGS), {
@@ -43,6 +52,10 @@ test("普通链接无选中文本时光标停在标题位置", () => {
     {
       text: "[](https://www.baidu.com)",
       cursor: { line: 3, ch: 6 },
+      titleRange: {
+        from: { line: 3, ch: 6 },
+        to: { line: 3, ch: 6 },
+      },
     }
   );
 });
@@ -85,4 +98,116 @@ test("YAML frontmatter 范围可被识别", () => {
   const documentText = "---\ntitle: test\n---\nbody";
   assert.equal(isInYamlFrontmatter(documentText, 1), true);
   assert.equal(isInYamlFrontmatter(documentText, 3), false);
+});
+
+test("supported title providers match only important sites", () => {
+  assert.equal(getSupportedTitleProvider("https://www.bilibili.com/video/BV1xx411c7mD"), "bilibili");
+  assert.equal(getSupportedTitleProvider("https://b23.tv/abc123"), "bilibili");
+  assert.equal(getSupportedTitleProvider("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), "YouTube");
+  assert.equal(getSupportedTitleProvider("https://youtu.be/dQw4w9WgXcQ"), "YouTube");
+  assert.equal(getSupportedTitleProvider("https://www.fab.com/listings/example"), "Fab");
+  assert.equal(getSupportedTitleProvider("https://example.com"), null);
+});
+
+test("HTML title extraction prefers Open Graph over Twitter and title tags", () => {
+  assert.equal(
+    extractHtmlTitle(`
+      <title>Title tag</title>
+      <meta name="twitter:title" content="Twitter title">
+      <meta property="og:title" content="OG &amp; title">
+    `),
+    "OG & title"
+  );
+});
+
+test("site title cleanup removes common suffixes", () => {
+  assert.equal(cleanBilibiliTitle("视频标题_哔哩哔哩_bilibili"), "视频标题");
+  assert.equal(cleanYouTubeTitle("Video title - YouTube"), "Video title");
+  assert.equal(cleanFabTitle("Asset title | Fab"), "Asset title");
+});
+
+test("bilibili title resolver uses API title when BV id is available", async () => {
+  const request: TitleRequest = async (input) => {
+    assert.equal(input.url, "https://api.bilibili.com/x/web-interface/view?bvid=BV1xx411c7mD");
+    return {
+      status: 200,
+      headers: {},
+      text: JSON.stringify({ data: { title: "Bilibili title" } }),
+    };
+  };
+
+  assert.equal(
+    await resolveSupportedSiteTitle("https://www.bilibili.com/video/BV1xx411c7mD", {
+      request,
+      timeoutMs: 500,
+    }),
+    "Bilibili title"
+  );
+});
+
+test("youtube title resolver uses oEmbed title", async () => {
+  const request: TitleRequest = async (input) => {
+    assert.match(input.url, /^https:\/\/www\.youtube\.com\/oembed\?/);
+    return {
+      status: 200,
+      headers: {},
+      text: JSON.stringify({ title: "YouTube title" }),
+    };
+  };
+
+  assert.equal(
+    await resolveSupportedSiteTitle("https://youtu.be/dQw4w9WgXcQ", {
+      request,
+      timeoutMs: 500,
+    }),
+    "YouTube title"
+  );
+});
+
+test("fab title resolver extracts page title", async () => {
+  const request: TitleRequest = async (input) => {
+    assert.equal(input.headers?.["User-Agent"], "facebookexternalhit/1.1");
+    return {
+      status: 200,
+      headers: {},
+      text: '<title>EASY RECOIL SYSTEM | Fab</title>',
+    };
+  };
+
+  assert.equal(
+    await resolveSupportedSiteTitle("https://www.fab.com/listings/80807922-d57b-47ed-8f3e-1ddc9b3d86eb", {
+      request,
+      timeoutMs: 500,
+    }),
+    "EASY RECOIL SYSTEM"
+  );
+});
+
+test("unsupported sites do not request titles", async () => {
+  let called = false;
+  const request: TitleRequest = async () => {
+    called = true;
+    return { status: 200, headers: {}, text: "" };
+  };
+
+  assert.equal(
+    await resolveSupportedSiteTitle("https://example.com", {
+      request,
+      timeoutMs: 500,
+    }),
+    null
+  );
+  assert.equal(called, false);
+});
+
+test("title resolver returns null on timeout", async () => {
+  const request: TitleRequest = () => new Promise(() => undefined);
+
+  assert.equal(
+    await resolveSupportedSiteTitle("https://youtu.be/dQw4w9WgXcQ", {
+      request,
+      timeoutMs: 1,
+    }),
+    null
+  );
 });

@@ -17,6 +17,10 @@ export interface MarkdownInsertionInput {
 export interface MarkdownInsertion {
   text: string;
   cursor: EditorPositionLike;
+  titleRange?: {
+    from: EditorPositionLike;
+    to: EditorPositionLike;
+  };
 }
 
 export function buildMarkdownInsertion(input: MarkdownInsertionInput): MarkdownInsertion {
@@ -28,7 +32,7 @@ export function buildMarkdownInsertion(input: MarkdownInsertionInput): MarkdownI
 }
 
 function buildNormalLinkInsertion(input: MarkdownInsertionInput): MarkdownInsertion {
-  const title = input.useSelectionAsLinkText ? escapeLinkText(input.selection) : "";
+  const title = input.useSelectionAsLinkText ? escapeMarkdownLinkText(input.selection) : "";
   const text = `[${title}](${input.url})`;
 
   if (title.length > 0) {
@@ -38,11 +42,17 @@ function buildNormalLinkInsertion(input: MarkdownInsertionInput): MarkdownInsert
     };
   }
 
+  const titlePosition = {
+    line: input.cursor.line,
+    ch: input.cursor.ch + 1,
+  };
+
   return {
     text,
-    cursor: {
-      line: input.cursor.line,
-      ch: input.cursor.ch + 1,
+    cursor: titlePosition,
+    titleRange: {
+      from: titlePosition,
+      to: titlePosition,
     },
   };
 }
@@ -60,7 +70,7 @@ function buildImageInsertion(input: MarkdownInsertionInput): MarkdownInsertion {
   };
 }
 
-function escapeLinkText(value: string): string {
+export function escapeMarkdownLinkText(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
 }
 

@@ -1,6 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type AutoPasteLinkPlugin from "../main";
-import { normalizeImageExtensions, normalizePatternList } from "./pluginSettings";
+import { getSettingText } from "./i18n";
+import {
+  normalizeImageExtensions,
+  normalizePatternList,
+  normalizeTitleFetchTimeoutMs,
+} from "./pluginSettings";
 
 export class AutoPasteLinkSettingTab extends PluginSettingTab {
   constructor(app: App, private readonly plugin: AutoPasteLinkPlugin) {
@@ -9,31 +14,42 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
+    const text = getSettingText();
     containerEl.empty();
 
+    addSection(containerEl, text.titleCompletionSectionName, text.titleCompletionSectionDesc);
+
     new Setting(containerEl)
-      .setName("启用插件")
-      .setDesc("关闭后不拦截任何粘贴行为。")
+      .setName(text.fetchSupportedSiteTitleName)
+      .setDesc(text.fetchSupportedSiteTitleDesc)
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.enabled).onChange(async (value) => {
-          this.plugin.settings.enabled = value;
+        toggle.setValue(this.plugin.settings.fetchSupportedSiteTitle).onChange(async (value) => {
+          this.plugin.settings.fetchSupportedSiteTitle = value;
           await this.plugin.saveSettings();
         })
       );
 
     new Setting(containerEl)
-      .setName("处理 YAML frontmatter")
-      .setDesc("默认关闭，避免破坏笔记顶部元数据。")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.processYamlFrontmatter).onChange(async (value) => {
-          this.plugin.settings.processYamlFrontmatter = value;
-          await this.plugin.saveSettings();
-        })
+      .setName(text.titleFetchTimeoutName)
+      .setDesc(createDescription(text.titleFetchTimeoutDesc, text.fabSlowHint))
+      .addText((input) =>
+        input
+          .setValue(String(this.plugin.settings.titleFetchTimeoutMs))
+          .onChange(async (value) => {
+            this.plugin.settings.titleFetchTimeoutMs = normalizeTitleFetchTimeoutMs(value);
+            await this.plugin.saveSettings();
+          })
       );
 
     new Setting(containerEl)
-      .setName("选中文本作为链接标题")
-      .setDesc("开启后，选中文字再粘贴普通 URL 会生成 [选中文字](URL)。")
+      .setName(text.supportedSitesName)
+      .setDesc(text.supportedSitesDesc);
+
+    addSection(containerEl, text.pasteBehaviorSectionName, text.pasteBehaviorSectionDesc);
+
+    new Setting(containerEl)
+      .setName(text.useSelectionAsLinkTextName)
+      .setDesc(text.useSelectionAsLinkTextDesc)
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.useSelectionAsLinkText).onChange(async (value) => {
           this.plugin.settings.useSelectionAsLinkText = value;
@@ -42,8 +58,8 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("图片链接后自动换行")
-      .setDesc("开启后，图片 Markdown 插入完成后光标移动到下一行开头。")
+      .setName(text.addNewlineAfterImageName)
+      .setDesc(text.addNewlineAfterImageDesc)
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.addNewlineAfterImage).onChange(async (value) => {
           this.plugin.settings.addNewlineAfterImage = value;
@@ -51,12 +67,24 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(containerEl)
+      .setName(text.processYamlFrontmatterName)
+      .setDesc(text.processYamlFrontmatterDesc)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.processYamlFrontmatter).onChange(async (value) => {
+          this.plugin.settings.processYamlFrontmatter = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    addSection(containerEl, text.imageDetectionSectionName, text.imageDetectionSectionDesc);
+
     const extensionSetting = new Setting(containerEl)
-      .setName("图片扩展名")
-      .setDesc("每行或逗号分隔一个扩展名，不需要写点号。");
+      .setName(text.imageExtensionsName)
+      .setDesc(text.imageExtensionsDesc);
     extensionSetting.settingEl.addClass("auto-paste-link-setting");
-    extensionSetting.addTextArea((text) =>
-      text
+    extensionSetting.addTextArea((area) =>
+      area
         .setValue(this.plugin.settings.imageExtensions.join("\n"))
         .onChange(async (value) => {
           this.plugin.settings.imageExtensions = normalizeImageExtensions(value);
@@ -65,11 +93,11 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
     );
 
     const patternSetting = new Setting(containerEl)
-      .setName("图片链接匹配规则")
-      .setDesc("每行一个 JavaScript 正则，用于识别无扩展名图片 URL。无效正则会被忽略。");
+      .setName(text.imageUrlPatternsName)
+      .setDesc(text.imageUrlPatternsDesc);
     patternSetting.settingEl.addClass("auto-paste-link-setting");
-    patternSetting.addTextArea((text) =>
-      text
+    patternSetting.addTextArea((area) =>
+      area
         .setValue(this.plugin.settings.imageUrlPatterns.join("\n"))
         .onChange(async (value) => {
           this.plugin.settings.imageUrlPatterns = normalizePatternList(value);
@@ -77,4 +105,24 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
         })
     );
   }
+}
+
+function addSection(containerEl: HTMLElement, name: string, description: string): void {
+  new Setting(containerEl)
+    .setName(name)
+    .setDesc(description)
+    .setClass("auto-paste-link-section")
+    .setHeading();
+}
+
+function createDescription(description: string, hint: string): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  fragment.append(description);
+
+  const hintEl = document.createElement("div");
+  hintEl.classList.add("auto-paste-link-setting-hint");
+  hintEl.textContent = hint;
+  fragment.append(hintEl);
+
+  return fragment;
 }

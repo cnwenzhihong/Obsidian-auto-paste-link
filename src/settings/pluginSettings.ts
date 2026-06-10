@@ -1,17 +1,19 @@
 export interface AutoPasteLinkSettings {
-  enabled: boolean;
   processYamlFrontmatter: boolean;
   useSelectionAsLinkText: boolean;
   addNewlineAfterImage: boolean;
+  fetchSupportedSiteTitle: boolean;
+  titleFetchTimeoutMs: number;
   imageExtensions: string[];
   imageUrlPatterns: string[];
 }
 
 export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
-  enabled: true,
   processYamlFrontmatter: false,
   useSelectionAsLinkText: true,
   addNewlineAfterImage: true,
+  fetchSupportedSiteTitle: true,
+  titleFetchTimeoutMs: 3000,
   imageExtensions: [
     "jpg",
     "jpeg",
@@ -30,11 +32,25 @@ export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
 
 export function normalizeSettings(value: Partial<AutoPasteLinkSettings>): AutoPasteLinkSettings {
   return {
-    ...DEFAULT_SETTINGS,
-    ...value,
+    processYamlFrontmatter: value.processYamlFrontmatter ?? DEFAULT_SETTINGS.processYamlFrontmatter,
+    useSelectionAsLinkText: value.useSelectionAsLinkText ?? DEFAULT_SETTINGS.useSelectionAsLinkText,
+    addNewlineAfterImage: value.addNewlineAfterImage ?? DEFAULT_SETTINGS.addNewlineAfterImage,
+    fetchSupportedSiteTitle: value.fetchSupportedSiteTitle ?? DEFAULT_SETTINGS.fetchSupportedSiteTitle,
+    titleFetchTimeoutMs: normalizeTitleFetchTimeoutMs(
+      value.titleFetchTimeoutMs ?? DEFAULT_SETTINGS.titleFetchTimeoutMs
+    ),
     imageExtensions: normalizeImageExtensions(value.imageExtensions ?? DEFAULT_SETTINGS.imageExtensions),
     imageUrlPatterns: normalizePatternList(value.imageUrlPatterns ?? DEFAULT_SETTINGS.imageUrlPatterns),
   };
+}
+
+export function normalizeTitleFetchTimeoutMs(value: number | string): number {
+  const parsed = typeof value === "number" ? value : Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_SETTINGS.titleFetchTimeoutMs;
+  }
+
+  return Math.max(100, Math.min(10000, Math.trunc(parsed)));
 }
 
 export function normalizeImageExtensions(value: string[] | string): string[] {

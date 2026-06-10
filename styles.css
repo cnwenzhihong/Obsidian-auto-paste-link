@@ -1,3 +1,14 @@
+.auto-paste-link-section {
+  padding-top: 1.25em;
+}
+
+.auto-paste-link-setting-hint {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
 .auto-paste-link-setting textarea {
   min-height: 7em;
   width: 100%;
