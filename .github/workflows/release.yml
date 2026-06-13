@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example 1.0.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    name: Build, attest, and upload release assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag and manifest version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${{ inputs.tag }}"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
+          if [[ "$TAG" != "$MANIFEST_VERSION" ]]; then
+            echo "Tag '$TAG' must match manifest.json version '$MANIFEST_VERSION'."
+            exit 1
+          fi
+
+          if [[ "$PACKAGE_VERSION" != "$MANIFEST_VERSION" ]]; then
+            echo "package.json version '$PACKAGE_VERSION' must match manifest.json version '$MANIFEST_VERSION'."
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            TAG_SHA="$(git rev-list -n 1 "$TAG")"
+            HEAD_SHA="$(git rev-parse HEAD)"
+            if [[ "$TAG_SHA" != "$HEAD_SHA" ]]; then
+              echo "Tag '$TAG' already exists at $TAG_SHA, but this workflow is running at $HEAD_SHA."
+              echo "Create a new version tag or move the tag intentionally before running this workflow."
+              exit 1
+            fi
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s main.js
+          test -s manifest.json
+          test -s styles.css
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
+      - name: Create release if needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "Auto Paste Link $TAG" \
+              --notes "Auto Paste Link $TAG release."
+          fi
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release upload "$TAG" main.js manifest.json styles.css --clobber
