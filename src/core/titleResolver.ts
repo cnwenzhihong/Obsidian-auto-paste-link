@@ -303,14 +303,14 @@ function parseHttpUrl(value: string): URL | null {
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => reject(new Error("Title request timed out")), timeoutMs);
+    const timeoutId = window.setTimeout(() => reject(new Error("Title request timed out")), timeoutMs);
     promise.then(
       (value) => {
-        clearTimeout(timeoutId);
+        window.clearTimeout(timeoutId);
         resolve(value);
       },
       (error: unknown) => {
-        clearTimeout(timeoutId);
+        window.clearTimeout(timeoutId);
         reject(error instanceof Error ? error : new Error(String(error)));
       }
     );

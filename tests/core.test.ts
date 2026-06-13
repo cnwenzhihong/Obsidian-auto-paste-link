@@ -1,5 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+
+Object.defineProperty(globalThis, "window", {
+  value: {
+    setTimeout,
+    clearTimeout,
+  },
+  configurable: true,
+});
+
 import { buildMarkdownInsertion } from "../src/core/markdownInserter.ts";
 import { classifyUrlText } from "../src/core/urlClassifier.ts";
 import { isInYamlFrontmatter } from "../src/core/yamlRangeDetector.ts";
