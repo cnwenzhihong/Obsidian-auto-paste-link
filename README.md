@@ -6,9 +6,13 @@ Auto Paste Link is an Obsidian plugin that formats a single pasted URL into a Ma
 
 ## Demo
 
-[Watch the demo video](docs/assets/auto-paste-link-trail.mp4)
+<video src="https://gcore.jsdelivr.net/gh/cnwenzhihong/ImageHosting/ProjectMarkdown/auto-paste-link-trail.mp4" controls muted loop>
+  <a href="https://gcore.jsdelivr.net/gh/cnwenzhihong/ImageHosting/ProjectMarkdown/auto-paste-link-trail.mp4">Watch the demo video</a>
+</video>
 
-中文：[查看演示视频](docs/assets/auto-paste-link-trail.mp4)
+[Open demo video](https://gcore.jsdelivr.net/gh/cnwenzhihong/ImageHosting/ProjectMarkdown/auto-paste-link-trail.mp4)
+
+中文：[打开演示视频](https://gcore.jsdelivr.net/gh/cnwenzhihong/ImageHosting/ProjectMarkdown/auto-paste-link-trail.mp4)
 
 ## Core Behavior
 
