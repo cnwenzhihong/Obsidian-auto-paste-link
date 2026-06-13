@@ -17,6 +17,10 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
   }
 
   display(): void {
+    this.renderSettings();
+  }
+
+  private renderSettings(): void {
     const { containerEl } = this;
     const text = getSettingText();
     containerEl.empty();
@@ -123,7 +127,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
               ...this.plugin.settings.trustedImageSources,
               createEmptyTrustedImageSource(),
             ];
-            this.display();
+            this.renderSettings();
           })
       );
 
@@ -169,7 +173,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
                 (_, sourceIndex) => sourceIndex !== index
               );
               await this.plugin.saveSettings();
-              this.display();
+              this.renderSettings();
             })
         );
     });
@@ -250,10 +254,10 @@ function addSubsection(containerEl: HTMLElement, name: string): HTMLElement {
 }
 
 function createDescription(description: string, hint: string): DocumentFragment {
-  const fragment = document.createDocumentFragment();
+  const fragment = activeDocument.createDocumentFragment();
   fragment.append(description);
 
-  const hintEl = document.createElement("div");
+  const hintEl = activeDocument.createElement("div");
   hintEl.classList.add("auto-paste-link-setting-hint");
   hintEl.textContent = hint;
   fragment.append(hintEl);
@@ -262,11 +266,11 @@ function createDescription(description: string, hint: string): DocumentFragment 
 }
 
 function createTrustedImageSourcesDescription(sources: TrustedImageSource[]): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  const list = document.createElement("ul");
+  const fragment = activeDocument.createDocumentFragment();
+  const list = activeDocument.createElement("ul");
 
   for (const source of sources) {
-    const item = document.createElement("li");
+    const item = activeDocument.createElement("li");
     const pathPrefix = source.pathPrefix || "/";
     item.textContent = `${source.host}${pathPrefix}`;
     list.append(item);

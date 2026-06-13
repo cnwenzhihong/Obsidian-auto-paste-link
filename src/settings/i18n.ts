@@ -1,5 +1,3 @@
-import { getLanguage } from "obsidian";
-
 interface SettingText {
   titleCompletionSectionName: string;
   pasteBehaviorSectionName: string;
@@ -127,5 +125,5 @@ const EN: SettingText = {
 };
 
 export function getSettingText(): SettingText {
-  return getLanguage().toLowerCase().startsWith("zh") ? ZH : EN;
+  return activeWindow.navigator.language.toLowerCase().startsWith("zh") ? ZH : EN;
 }

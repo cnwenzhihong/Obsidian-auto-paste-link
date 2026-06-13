@@ -22,7 +22,7 @@ export default class AutoPasteLinkPlugin extends Plugin {
     );
 
     this.registerDomEvent(
-      document,
+      activeDocument,
       "keydown",
       (event) => {
         this.pasteShortcutTracker.handleKeydown(event);
