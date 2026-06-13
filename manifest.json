@@ -1,7 +1,7 @@
 {
   "id": "auto-paste-link",
   "name": "Auto Paste Link",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minAppVersion": "1.5.0",
   "description": "Auto formats pasted URLs as Markdown links, media embeds, and supported site titles.",
   "author": "cnwenzhihong",

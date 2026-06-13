@@ -1,6 +1,6 @@
 {
   "name": "obsidian-auto-paste-link",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Auto format pasted URLs as Markdown links, media embeds, and supported site titles in Obsidian.",
   "main": "main.js",
   "scripts": {
