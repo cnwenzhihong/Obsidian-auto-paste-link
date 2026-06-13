@@ -16,9 +16,16 @@ import {
 } from "./titleResolver";
 
 export class PasteHandler {
-  constructor(private readonly getSettings: () => AutoPasteLinkSettings) {}
+  constructor(
+    private readonly getSettings: () => AutoPasteLinkSettings,
+    private readonly shouldSkipPaste = () => false
+  ) {}
 
   handlePaste(event: ClipboardEvent, editor: Editor): boolean {
+    if (this.shouldSkipPaste()) {
+      return false;
+    }
+
     const settings = this.getSettings();
     const pastedText = event.clipboardData?.getData("text/plain") ?? "";
     const classification = classifyUrlText(pastedText, settings);

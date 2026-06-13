@@ -1,6 +1,7 @@
 import { MarkdownView, Plugin } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { PasteHandler } from "./core/pasteHandler";
+import { PasteShortcutTracker } from "./core/pasteShortcutTracker";
 import { AutoPasteLinkSettingTab } from "./settings/settingTab";
 import {
   DEFAULT_SETTINGS,
@@ -11,10 +12,25 @@ import {
 export default class AutoPasteLinkPlugin extends Plugin {
   settings: AutoPasteLinkSettings = DEFAULT_SETTINGS;
   private pasteHandler: PasteHandler | null = null;
+  private pasteShortcutTracker = new PasteShortcutTracker();
 
   async onload(): Promise<void> {
     await this.loadSettings();
-    this.pasteHandler = new PasteHandler(() => this.settings);
+    this.pasteHandler = new PasteHandler(
+      () => this.settings,
+      () => this.pasteShortcutTracker.consumeShouldSkipPaste()
+    );
+
+    this.registerDomEvent(
+      document,
+      "keydown",
+      (event) => {
+        this.pasteShortcutTracker.handleKeydown(event);
+      },
+      {
+        capture: true,
+      }
+    );
 
     this.registerEditorExtension(
       EditorView.domEventHandlers({

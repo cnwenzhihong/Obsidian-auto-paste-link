@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { buildMarkdownInsertion } from "../src/core/markdownInserter.ts";
 import { classifyUrlText } from "../src/core/urlClassifier.ts";
 import { isInYamlFrontmatter } from "../src/core/yamlRangeDetector.ts";
+import { PasteShortcutTracker } from "../src/core/pasteShortcutTracker.ts";
 import { DEFAULT_SETTINGS } from "../src/settings/pluginSettings.ts";
 import {
   cleanBilibiliTitle,
@@ -297,4 +298,50 @@ test("title resolver returns null on timeout", async () => {
     }),
     null
   );
+});
+
+test("Ctrl+Shift+V skips exactly one following paste", () => {
+  const tracker = new PasteShortcutTracker(1000);
+  tracker.handleKeydown(
+    {
+      key: "v",
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: true,
+    },
+    100
+  );
+
+  assert.equal(tracker.consumeShouldSkipPaste(200), true);
+  assert.equal(tracker.consumeShouldSkipPaste(201), false);
+});
+
+test("Ctrl+V does not skip paste handling", () => {
+  const tracker = new PasteShortcutTracker(1000);
+  tracker.handleKeydown(
+    {
+      key: "v",
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+    },
+    100
+  );
+
+  assert.equal(tracker.consumeShouldSkipPaste(200), false);
+});
+
+test("Ctrl+Shift+V skip marker expires quickly", () => {
+  const tracker = new PasteShortcutTracker(1000);
+  tracker.handleKeydown(
+    {
+      key: "v",
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: true,
+    },
+    100
+  );
+
+  assert.equal(tracker.consumeShouldSkipPaste(1201), false);
 });
