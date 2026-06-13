@@ -29,7 +29,25 @@ export interface ResolveSupportedSiteTitleOptions {
   timeoutMs: number;
 }
 
-export const SUPPORTED_SITE_NAMES = ["bilibili", "YouTube", "Fab"] as const;
+export const SUPPORTED_SITE_NAMES = [
+  "bilibili",
+  "YouTube",
+  "Fab",
+  "GitHub",
+  "Stack Overflow",
+  "Stack Exchange",
+  "Reddit",
+  "Wikipedia",
+  "Steam",
+  "MDN",
+  "npm",
+  "Zhihu",
+  "Juejin",
+  "CSDN",
+  "WeChat Official Accounts",
+  "Douban",
+  "CNBlogs",
+] as const;
 
 const JSON_HEADERS = {
   Accept: "application/json,text/plain,*/*",
@@ -134,6 +152,90 @@ const PROVIDERS: TitleProvider[] = [
       return cleanFabTitle(extractHtmlTitle(response.text));
     },
   },
+  createHtmlTitleProvider({
+    id: "github",
+    displayName: "GitHub",
+    domains: ["github.com"],
+    suffixes: [" · GitHub", " - GitHub"],
+  }),
+  createHtmlTitleProvider({
+    id: "stackoverflow",
+    displayName: "Stack Overflow",
+    domains: ["stackoverflow.com"],
+    suffixes: [" - Stack Overflow"],
+  }),
+  createHtmlTitleProvider({
+    id: "stackexchange",
+    displayName: "Stack Exchange",
+    domains: ["stackexchange.com", "serverfault.com", "superuser.com", "askubuntu.com"],
+    suffixes: [" - Stack Exchange", " - Server Fault", " - Super User", " - Ask Ubuntu"],
+  }),
+  createHtmlTitleProvider({
+    id: "reddit",
+    displayName: "Reddit",
+    domains: ["reddit.com"],
+    suffixes: [" : r/reddit.com", " - Reddit"],
+  }),
+  createHtmlTitleProvider({
+    id: "wikipedia",
+    displayName: "Wikipedia",
+    domains: ["wikipedia.org"],
+    suffixes: [" - Wikipedia", " - 维基百科，自由的百科全书"],
+  }),
+  createHtmlTitleProvider({
+    id: "steam",
+    displayName: "Steam",
+    domains: ["store.steampowered.com", "steamcommunity.com"],
+    suffixes: [" on Steam", " :: Steam Community"],
+  }),
+  createHtmlTitleProvider({
+    id: "mdn",
+    displayName: "MDN",
+    domains: ["developer.mozilla.org"],
+    suffixes: [" | MDN", " - MDN Web Docs"],
+  }),
+  createHtmlTitleProvider({
+    id: "npm",
+    displayName: "npm",
+    domains: ["npmjs.com"],
+    suffixes: [" | npm"],
+  }),
+  createHtmlTitleProvider({
+    id: "zhihu",
+    displayName: "Zhihu",
+    domains: ["zhihu.com", "zhuanlan.zhihu.com"],
+    suffixes: [" - 知乎", " - 知乎专栏"],
+  }),
+  createHtmlTitleProvider({
+    id: "juejin",
+    displayName: "Juejin",
+    domains: ["juejin.cn"],
+    suffixes: [" - 掘金"],
+  }),
+  createHtmlTitleProvider({
+    id: "csdn",
+    displayName: "CSDN",
+    domains: ["blog.csdn.net", "csdn.net"],
+    suffixes: ["-CSDN博客", "_csdn", " - CSDN博客"],
+  }),
+  createHtmlTitleProvider({
+    id: "wechat",
+    displayName: "WeChat Official Accounts",
+    domains: ["mp.weixin.qq.com"],
+    suffixes: [" - 微信公众平台"],
+  }),
+  createHtmlTitleProvider({
+    id: "douban",
+    displayName: "Douban",
+    domains: ["douban.com"],
+    suffixes: [" (豆瓣)", " | 豆瓣"],
+  }),
+  createHtmlTitleProvider({
+    id: "cnblogs",
+    displayName: "CNBlogs",
+    domains: ["cnblogs.com"],
+    suffixes: [" - 博客园"],
+  }),
 ];
 
 export function getSupportedTitleProvider(url: string): string | null {
@@ -199,6 +301,37 @@ export function cleanYouTubeTitle(title: string | null): string | null {
 
 export function cleanFabTitle(title: string | null): string | null {
   return cleanSiteSuffix(title, [" | Fab", " - Fab"]);
+}
+
+interface HtmlTitleProviderOptions {
+  id: string;
+  displayName: string;
+  domains: string[];
+  suffixes: string[];
+}
+
+function createHtmlTitleProvider(options: HtmlTitleProviderOptions): TitleProvider {
+  return {
+    id: options.id,
+    displayName: options.displayName,
+    matches(url) {
+      return options.domains.some((domain) => isHost(url, domain));
+    },
+    createRequests(_url, rawUrl) {
+      return [
+        {
+          kind: "html",
+          request: {
+            url: rawUrl,
+            headers: HTML_HEADERS,
+          },
+        },
+      ];
+    },
+    parse(response) {
+      return cleanSiteSuffix(extractHtmlTitle(response.text), options.suffixes);
+    },
+  };
 }
 
 function extractBilibiliBvid(url: URL): string | null {

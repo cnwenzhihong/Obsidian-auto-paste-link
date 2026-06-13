@@ -1,10 +1,13 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - "*.*.*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, for example 1.0.1"
+        description: "Release tag, for example 1.0.3"
         required: true
         type: string
 
@@ -24,12 +27,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Validate tag and manifest version
         shell: bash
         run: |
           set -euo pipefail
 
-          TAG="${{ inputs.tag }}"
+          TAG="${{ steps.release.outputs.tag }}"
           MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
 
@@ -52,6 +66,10 @@ jobs:
               exit 1
             fi
           else
+            if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+              echo "Tag '$TAG' was not found after tag push checkout."
+              exit 1
+            fi
             git tag "$TAG"
             git push origin "$TAG"
           fi
@@ -95,7 +113,7 @@ jobs:
       - name: Create release if needed
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.release.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
@@ -108,5 +126,5 @@ jobs:
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.release.outputs.tag }}
         run: gh release upload "$TAG" main.js manifest.json styles.css --clobber

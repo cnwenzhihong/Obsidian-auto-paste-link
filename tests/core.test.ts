@@ -259,6 +259,20 @@ test("supported title providers match only important sites", () => {
   assert.equal(getSupportedTitleProvider("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), "YouTube");
   assert.equal(getSupportedTitleProvider("https://youtu.be/dQw4w9WgXcQ"), "YouTube");
   assert.equal(getSupportedTitleProvider("https://www.fab.com/listings/example"), "Fab");
+  assert.equal(getSupportedTitleProvider("https://github.com/cnwenzhihong/Obsidian-auto-paste-link"), "GitHub");
+  assert.equal(getSupportedTitleProvider("https://stackoverflow.com/questions/1/example"), "Stack Overflow");
+  assert.equal(getSupportedTitleProvider("https://superuser.com/questions/1/example"), "Stack Exchange");
+  assert.equal(getSupportedTitleProvider("https://www.reddit.com/r/ObsidianMD/comments/example"), "Reddit");
+  assert.equal(getSupportedTitleProvider("https://en.wikipedia.org/wiki/Obsidian"), "Wikipedia");
+  assert.equal(getSupportedTitleProvider("https://store.steampowered.com/app/620/Portal_2/"), "Steam");
+  assert.equal(getSupportedTitleProvider("https://developer.mozilla.org/en-US/docs/Web/API/URL"), "MDN");
+  assert.equal(getSupportedTitleProvider("https://www.npmjs.com/package/obsidian"), "npm");
+  assert.equal(getSupportedTitleProvider("https://www.zhihu.com/question/123"), "Zhihu");
+  assert.equal(getSupportedTitleProvider("https://juejin.cn/post/123"), "Juejin");
+  assert.equal(getSupportedTitleProvider("https://blog.csdn.net/example/article/details/1"), "CSDN");
+  assert.equal(getSupportedTitleProvider("https://mp.weixin.qq.com/s/example"), "WeChat Official Accounts");
+  assert.equal(getSupportedTitleProvider("https://movie.douban.com/subject/1292052/"), "Douban");
+  assert.equal(getSupportedTitleProvider("https://www.cnblogs.com/example/p/1.html"), "CNBlogs");
   assert.equal(getSupportedTitleProvider("https://example.com"), null);
 });
 
@@ -334,6 +348,44 @@ test("fab title resolver extracts page title", async () => {
     }),
     "EASY RECOIL SYSTEM"
   );
+});
+
+test("common HTML title providers extract and clean titles", async () => {
+  const cases: Array<[string, string, string]> = [
+    ["https://github.com/cnwenzhihong/Obsidian-auto-paste-link", "Auto Paste Link · GitHub", "Auto Paste Link"],
+    ["https://stackoverflow.com/questions/1/example", "How to paste URLs - Stack Overflow", "How to paste URLs"],
+    ["https://superuser.com/questions/1/example", "Keyboard shortcut - Super User", "Keyboard shortcut"],
+    ["https://www.reddit.com/r/ObsidianMD/comments/example", "Plugin discussion - Reddit", "Plugin discussion"],
+    ["https://en.wikipedia.org/wiki/Obsidian", "Obsidian - Wikipedia", "Obsidian"],
+    ["https://store.steampowered.com/app/620/Portal_2/", "Portal 2 on Steam", "Portal 2"],
+    ["https://developer.mozilla.org/en-US/docs/Web/API/URL", "URL | MDN", "URL"],
+    ["https://www.npmjs.com/package/obsidian", "obsidian | npm", "obsidian"],
+    ["https://www.zhihu.com/question/123", "如何使用 Obsidian？ - 知乎", "如何使用 Obsidian？"],
+    ["https://juejin.cn/post/123", "前端工程实践 - 掘金", "前端工程实践"],
+    ["https://blog.csdn.net/example/article/details/1", "TypeScript 实践-CSDN博客", "TypeScript 实践"],
+    ["https://mp.weixin.qq.com/s/example", "公众号文章标题 - 微信公众平台", "公众号文章标题"],
+    ["https://movie.douban.com/subject/1292052/", "肖申克的救赎 (豆瓣)", "肖申克的救赎"],
+    ["https://www.cnblogs.com/example/p/1.html", "博客文章 - 博客园", "博客文章"],
+  ];
+
+  for (const [url, rawTitle, expectedTitle] of cases) {
+    const request: TitleRequest = async (input) => {
+      assert.equal(input.url, url);
+      return {
+        status: 200,
+        headers: {},
+        text: `<title>${rawTitle}</title>`,
+      };
+    };
+
+    assert.equal(
+      await resolveSupportedSiteTitle(url, {
+        request,
+        timeoutMs: 500,
+      }),
+      expectedTitle
+    );
+  }
 });
 
 test("unsupported sites do not request titles", async () => {

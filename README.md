@@ -57,6 +57,20 @@ Automatic title fetching is intentionally limited to important supported sites:
 - bilibili
 - YouTube
 - Fab
+- GitHub
+- Stack Overflow
+- Stack Exchange
+- Reddit
+- Wikipedia
+- Steam
+- MDN
+- npm
+- Zhihu
+- Juejin
+- CSDN
+- WeChat Official Accounts
+- Douban
+- CNBlogs
 
 Other websites are not fetched for titles.
 
@@ -158,4 +172,4 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-The GitHub release tag must exactly match the version in `manifest.json`, for example `1.0.0` without a `v` prefix. Release assets must include `main.js`, `manifest.json`, and `styles.css`.
+The GitHub release tag must exactly match the version in `manifest.json`, for example `1.0.3` without a `v` prefix. Release assets must include `main.js`, `manifest.json`, and `styles.css`.
