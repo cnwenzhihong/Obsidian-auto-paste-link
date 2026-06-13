@@ -22,6 +22,17 @@ interface SettingText {
   addNewlineAfterImageDesc: string;
   imageExtensionsName: string;
   imageExtensionsDesc: string;
+  builtinTrustedImageSourcesName: string;
+  trustedImageSourcesName: string;
+  trustedImageSourcesDesc: string;
+  addTrustedImageSourceButtonText: string;
+  trustedImageSourceRowName: string;
+  trustedImageSourceRowDesc: string;
+  trustedImageSourceHostPlaceholder: string;
+  trustedImageSourcePathPrefixPlaceholder: string;
+  trustedImageSourceIncludeSubdomainsText: string;
+  deleteTrustedImageSourceButtonText: string;
+  advancedImageRulesSubsectionName: string;
   imageUrlPatternsName: string;
   imageUrlPatternsDesc: string;
   embedVideoLinksName: string;
@@ -53,8 +64,19 @@ const ZH: SettingText = {
   addNewlineAfterImageDesc: "开启后，图片 Markdown 插入完成后光标移动到下一行开头。",
   imageExtensionsName: "图片扩展名",
   imageExtensionsDesc: "每行或逗号分隔一个扩展名，不需要写点号。",
-  imageUrlPatternsName: "图片链接匹配规则",
-  imageUrlPatternsDesc: "每行一个 JavaScript 正则，用于识别无扩展名图片 URL。无效正则会被忽略。",
+  builtinTrustedImageSourcesName: "内置可信图片来源",
+  trustedImageSourcesName: "自定义可信图片来源",
+  trustedImageSourcesDesc: "适合添加明确只承载图片的站点或路径。普通 CDN 不建议添加。",
+  addTrustedImageSourceButtonText: "添加来源",
+  trustedImageSourceRowName: "来源",
+  trustedImageSourceRowDesc: "第一个输入 Host，第二个输入路径前缀；开关表示包含子域名。",
+  trustedImageSourceHostPlaceholder: "host，例如 images.example.com",
+  trustedImageSourcePathPrefixPlaceholder: "路径前缀，可留空，例如 /media/",
+  trustedImageSourceIncludeSubdomainsText: "包含子域名",
+  deleteTrustedImageSourceButtonText: "删除",
+  advancedImageRulesSubsectionName: "高级规则",
+  imageUrlPatternsName: "高级正则规则",
+  imageUrlPatternsDesc: "每行一个 JavaScript 正则。仅建议在可信来源无法表达时使用，无效正则会被忽略。",
   embedVideoLinksName: "自动嵌入视频链接",
   embedVideoLinksDesc: "开启后，直接视频文件 URL 会插入为 HTML video 标签。",
   videoSubsectionName: "视频",
@@ -84,8 +106,19 @@ const EN: SettingText = {
   addNewlineAfterImageDesc: "When enabled, the cursor moves to the start of the next line after inserting an image link.",
   imageExtensionsName: "Image extensions",
   imageExtensionsDesc: "Enter one extension per line or separate them with commas. Do not include the dot.",
-  imageUrlPatternsName: "Image URL patterns",
-  imageUrlPatternsDesc: "Enter one JavaScript regular expression per line for image URLs without extensions. Invalid patterns are ignored.",
+  builtinTrustedImageSourcesName: "Built-in trusted image sources",
+  trustedImageSourcesName: "Custom trusted image sources",
+  trustedImageSourcesDesc: "Use this for hosts or paths that clearly serve images. Avoid generic CDN domains.",
+  addTrustedImageSourceButtonText: "Add source",
+  trustedImageSourceRowName: "Source",
+  trustedImageSourceRowDesc: "First input is the host, second input is the path prefix. The toggle includes subdomains.",
+  trustedImageSourceHostPlaceholder: "host, e.g. images.example.com",
+  trustedImageSourcePathPrefixPlaceholder: "optional path prefix, e.g. /media/",
+  trustedImageSourceIncludeSubdomainsText: "Include subdomains",
+  deleteTrustedImageSourceButtonText: "Delete",
+  advancedImageRulesSubsectionName: "Advanced rules",
+  imageUrlPatternsName: "Advanced regular expressions",
+  imageUrlPatternsDesc: "Enter one JavaScript regular expression per line. Use only when trusted sources cannot express the rule. Invalid patterns are ignored.",
   embedVideoLinksName: "Embed video links",
   embedVideoLinksDesc: "When enabled, direct video file URLs are inserted as HTML video tags.",
   videoSubsectionName: "Videos",

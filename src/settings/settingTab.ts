@@ -2,10 +2,13 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type AutoPasteLinkPlugin from "../main";
 import { getSettingText } from "./i18n";
 import {
+  BUILTIN_TRUSTED_IMAGE_SOURCES,
   normalizeImageExtensions,
   normalizePatternList,
   normalizeTitleFetchTimeoutMs,
+  normalizeTrustedImageSources,
   normalizeVideoExtensions,
+  type TrustedImageSource,
 } from "./pluginSettings";
 
 export class AutoPasteLinkSettingTab extends PluginSettingTab {
@@ -105,7 +108,74 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
         })
     );
 
-    const patternSetting = new Setting(imageSection)
+    new Setting(imageSection)
+      .setName(text.builtinTrustedImageSourcesName)
+      .setDesc(createTrustedImageSourcesDescription(BUILTIN_TRUSTED_IMAGE_SOURCES));
+
+    new Setting(imageSection)
+      .setName(text.trustedImageSourcesName)
+      .setDesc(text.trustedImageSourcesDesc)
+      .addButton((button) =>
+        button
+          .setButtonText(text.addTrustedImageSourceButtonText)
+          .onClick(() => {
+            this.plugin.settings.trustedImageSources = [
+              ...this.plugin.settings.trustedImageSources,
+              createEmptyTrustedImageSource(),
+            ];
+            this.display();
+          })
+      );
+
+    this.plugin.settings.trustedImageSources.forEach((source, index) => {
+      new Setting(imageSection)
+        .setName(`${text.trustedImageSourceRowName} ${index + 1}`)
+        .setDesc(text.trustedImageSourceRowDesc)
+        .addText((input) =>
+          input
+            .setPlaceholder(text.trustedImageSourceHostPlaceholder)
+            .setValue(source.host)
+            .onChange(async (value) => {
+              await this.updateTrustedImageSource(index, {
+                host: value,
+              });
+            })
+        )
+        .addText((input) =>
+          input
+            .setPlaceholder(text.trustedImageSourcePathPrefixPlaceholder)
+            .setValue(source.pathPrefix)
+            .onChange(async (value) => {
+              await this.updateTrustedImageSource(index, {
+                pathPrefix: value,
+              });
+            })
+        )
+        .addToggle((toggle) =>
+          toggle
+            .setTooltip(text.trustedImageSourceIncludeSubdomainsText)
+            .setValue(source.includeSubdomains)
+            .onChange(async (value) => {
+              await this.updateTrustedImageSource(index, {
+                includeSubdomains: value,
+              });
+            })
+        )
+        .addButton((button) =>
+          button
+            .setButtonText(text.deleteTrustedImageSourceButtonText)
+            .onClick(async () => {
+              this.plugin.settings.trustedImageSources = this.plugin.settings.trustedImageSources.filter(
+                (_, sourceIndex) => sourceIndex !== index
+              );
+              await this.plugin.saveSettings();
+              this.display();
+            })
+        );
+    });
+
+    const advancedImageSection = addSubsection(imageSection, text.advancedImageRulesSubsectionName);
+    const patternSetting = new Setting(advancedImageSection)
       .setName(text.imageUrlPatternsName)
       .setDesc(text.imageUrlPatternsDesc);
     patternSetting.settingEl.addClass("auto-paste-link-setting");
@@ -143,6 +213,16 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
         })
     );
   }
+
+  private async updateTrustedImageSource(index: number, patch: Partial<TrustedImageSource>): Promise<void> {
+    const sources = [...this.plugin.settings.trustedImageSources];
+    sources[index] = {
+      ...(sources[index] ?? createEmptyTrustedImageSource()),
+      ...patch,
+    };
+    this.plugin.settings.trustedImageSources = normalizeTrustedImageSources(sources);
+    await this.plugin.saveSettings();
+  }
 }
 
 function addSection(containerEl: HTMLElement, name: string): void {
@@ -179,4 +259,27 @@ function createDescription(description: string, hint: string): DocumentFragment 
   fragment.append(hintEl);
 
   return fragment;
+}
+
+function createTrustedImageSourcesDescription(sources: TrustedImageSource[]): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  const list = document.createElement("ul");
+
+  for (const source of sources) {
+    const item = document.createElement("li");
+    const pathPrefix = source.pathPrefix || "/";
+    item.textContent = `${source.host}${pathPrefix}`;
+    list.append(item);
+  }
+
+  fragment.append(list);
+  return fragment;
+}
+
+function createEmptyTrustedImageSource(): TrustedImageSource {
+  return {
+    host: "",
+    pathPrefix: "",
+    includeSubdomains: false,
+  };
 }

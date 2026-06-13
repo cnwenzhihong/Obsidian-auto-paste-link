@@ -1,32 +1,153 @@
 # Auto Paste Link
 
-Obsidian 插件：从外部粘贴单个 URL 时，自动生成 Markdown 普通链接、图片链接或视频嵌入。对受支持的重要站点，可自动补全链接标题。
+Auto Paste Link is an Obsidian plugin that formats a single pasted URL into a Markdown link, image embed, or video embed. For selected supported websites, it can also fill the link title automatically.
 
-## 行为
+中文：这是一个 Obsidian 插件，用于在粘贴单个 URL 时自动生成 Markdown 普通链接、图片嵌入或视频嵌入。对受支持的重要站点，可以自动补全链接标题。
 
-- 粘贴普通 URL：立即插入 `[](URL)`，光标停在标题位置。
-- 粘贴受支持站点 URL：先插入 `[](URL)`，标题请求成功后自动补全为 `[标题](URL)`。
-- 选中文本后粘贴普通 URL：插入 `[选中文本](URL)`，不联网获取标题。
-- 粘贴图片 URL：插入 `![](URL)` 并把光标移动到下一行开头。
-- 粘贴视频文件 URL：插入 `<video src="URL" controls muted autoplay loop></video>` 并换行。
-- 粘贴一段混合文本时不自动转换，保持原样。
-- YAML frontmatter 默认不处理，避免破坏元数据。
+## Demo
 
-## 设置
+[Watch the demo video](docs/assets/auto-paste-link-trail.mp4)
 
-- 自动获取支持站点标题：默认开启。
-- 标题请求超时：默认 `3000ms`。Fab 访问速度通常较慢，低于该值可能经常取不到标题。
-- 当前支持站点：bilibili、YouTube、Fab。
-- 选中文本作为链接标题：默认开启。
-- 自动嵌入图片链接：默认开启。
-- 图片链接后自动换行：默认开启。
-- 处理 YAML frontmatter：默认关闭。
-- 自动嵌入视频链接：默认开启。
-- 视频扩展名：默认 `mp4`，用于识别直接视频文件 URL。
-- 图片扩展名：用于识别 `.jpg`、`.png`、`.webp` 等 URL。
-- 图片链接匹配规则：每行一个 JavaScript 正则，用于识别无扩展名图片链接。
+中文：[查看演示视频](docs/assets/auto-paste-link-trail.mp4)
 
-## 开发
+## Core Behavior
+
+- Normal URL: inserts `[](URL)` and keeps the cursor inside `[]`.
+- Selected text + normal URL: inserts `[selected text](URL)`.
+- Supported website URL: inserts `[](URL)` first, then fills the title when the title request succeeds.
+- Image URL: inserts `![](URL)`.
+- Direct video file URL: inserts `<video src="URL" controls muted autoplay loop></video>`.
+- Mixed text is not converted.
+- YAML frontmatter is ignored by default.
+- `Ctrl+Shift+V` keeps Obsidian's plain paste behavior and skips plugin processing.
+
+## Examples
+
+Normal link:
+
+```md
+[](https://www.baidu.com)
+```
+
+Normal link with selected text:
+
+```md
+[百度](https://www.baidu.com)
+```
+
+Image link:
+
+```md
+![](https://images.steamusercontent.com/ugc/example/hash/?imw=5000)
+```
+
+Video link:
+
+```html
+<video src="https://example.com/video.mp4" controls muted autoplay loop></video>
+```
+
+## Supported Title Sites
+
+Automatic title fetching is intentionally limited to important supported sites:
+
+- bilibili
+- YouTube
+- Fab
+
+Other websites are not fetched for titles.
+
+## Image Detection
+
+Image detection is deliberately conservative. The plugin does not treat every CDN as an image source.
+
+Detection order:
+
+1. Image file extension, such as `.jpg`, `.png`, `.webp`, `.gif`, `.svg`, `.avif`.
+2. Trusted image sources.
+3. Advanced regular expressions.
+
+Built-in trusted image sources include:
+
+- `images.unsplash.com/`
+- `i.imgur.com/`
+- `images.steamusercontent.com/`
+- `pbs.twimg.com/media/`
+- `i.ytimg.com/vi/`
+- `img.youtube.com/vi/`
+- `i0.hdslb.com/bfs/`
+- `i1.hdslb.com/bfs/`
+- `i2.hdslb.com/bfs/`
+
+Generic CDN domains such as `cloudfront.net`, `akamaihd.net`, `fastly.net`, and `googleusercontent.com` are not built in, because they can serve images, webpages, scripts, downloads, and many other resource types.
+
+## Custom Trusted Image Sources
+
+Use custom trusted image sources for hosts or paths that clearly serve images.
+
+Each source has:
+
+- Host: required, for example `images.example.com`.
+- Path prefix: optional, for example `/media/`.
+- Include subdomains: optional. Keep it off unless subdomains are also known image sources.
+
+Examples:
+
+```text
+host: images.example.com
+path prefix: /media/
+include subdomains: off
+```
+
+This matches:
+
+```text
+https://images.example.com/media/abc
+```
+
+It does not match:
+
+```text
+https://images.example.com/files/abc
+https://sub.images.example.com/media/abc
+```
+
+If `include subdomains` is enabled, then subdomains such as `cdn.images.example.com` can also match.
+
+## Advanced Regular Expressions
+
+Advanced image URL regular expressions are still available for edge cases, but they should be treated as an escape hatch.
+
+Use trusted image sources first. Use regular expressions only when a source cannot be expressed by host and path prefix.
+
+The default advanced rule recognizes explicit image format query parameters, for example:
+
+```text
+https://example.com/resource?id=1&format=jpg
+```
+
+## Settings
+
+- Auto fetch supported site titles: enabled by default.
+- Title request timeout: `3000ms` by default. Fab is usually slower than other supported sites.
+- Use selected text as the link title: enabled by default.
+- Process YAML frontmatter: disabled by default.
+- Auto embed image links: enabled by default.
+- Add newline after image links: enabled by default.
+- Image extensions are configurable.
+- Custom trusted image sources are configurable.
+- Advanced image URL regular expressions are configurable.
+- Auto embed video links: enabled by default.
+- Video extensions are configurable. The default is `mp4`.
+
+## Manual Installation
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the latest GitHub release.
+2. Create this folder in your vault: `.obsidian/plugins/auto-paste-link/`.
+3. Put the three downloaded files into that folder.
+4. Enable the plugin in Obsidian settings.
+
+## Development
 
 ```bash
 corepack pnpm install
@@ -34,4 +155,4 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-构建完成后，把 `main.js`、`manifest.json`、`styles.css` 放入 Obsidian 库的 `.obsidian/plugins/auto-paste-link/` 目录并启用插件。
+The GitHub release tag must exactly match the version in `manifest.json`, for example `1.0.0` without a `v` prefix. Release assets must include `main.js`, `manifest.json`, and `styles.css`.

@@ -4,7 +4,7 @@ import { buildMarkdownInsertion } from "../src/core/markdownInserter.ts";
 import { classifyUrlText } from "../src/core/urlClassifier.ts";
 import { isInYamlFrontmatter } from "../src/core/yamlRangeDetector.ts";
 import { PasteShortcutTracker } from "../src/core/pasteShortcutTracker.ts";
-import { DEFAULT_SETTINGS } from "../src/settings/pluginSettings.ts";
+import { DEFAULT_SETTINGS, normalizeSettings } from "../src/settings/pluginSettings.ts";
 import {
   cleanBilibiliTitle,
   cleanFabTitle,
@@ -82,11 +82,67 @@ test("自定义视频扩展名可识别新增视频类型", () => {
   );
 });
 
-test("无扩展名图片 URL 可通过规则识别", () => {
+test("无扩展名图片 URL 可通过内置可信来源识别", () => {
   assert.deepEqual(classifyUrlText("https://images.unsplash.com/photo-1", DEFAULT_SETTINGS), {
     kind: "image-link",
     url: "https://images.unsplash.com/photo-1",
   });
+});
+
+test("Steam 无扩展名图片 URL 可通过默认规则识别", () => {
+  const url = "https://images.steamusercontent.com/ugc/1751306654054219740/8964AA9866F67EB209B64B7F151D13DF053038A5/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false";
+
+  assert.deepEqual(classifyUrlText(url, DEFAULT_SETTINGS), {
+    kind: "image-link",
+    url,
+  });
+});
+
+test("常见高置信图片来源可被识别", () => {
+  assert.equal(classifyUrlText("https://pbs.twimg.com/media/example?format=jpg", DEFAULT_SETTINGS).kind, "image-link");
+  assert.equal(classifyUrlText("https://i.ytimg.com/vi/video-id/maxresdefault", DEFAULT_SETTINGS).kind, "image-link");
+  assert.equal(classifyUrlText("https://i0.hdslb.com/bfs/archive/example", DEFAULT_SETTINGS).kind, "image-link");
+});
+
+test("泛 CDN 不会被误识别为图片", () => {
+  assert.equal(classifyUrlText("https://example.cloudfront.net/assets/resource", DEFAULT_SETTINGS).kind, "normal-link");
+  assert.equal(classifyUrlText("https://lh3.googleusercontent.com/a/resource", DEFAULT_SETTINGS).kind, "normal-link");
+});
+
+test("用户可信图片来源按 host 和路径前缀识别", () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    trustedImageSources: [
+      {
+        host: "cdn.example.com",
+        pathPrefix: "/images/",
+        includeSubdomains: false,
+      },
+    ],
+  });
+
+  assert.equal(classifyUrlText("https://cdn.example.com/images/resource", settings).kind, "image-link");
+  assert.equal(classifyUrlText("https://cdn.example.com/files/resource", settings).kind, "normal-link");
+  assert.equal(classifyUrlText("https://sub.cdn.example.com/images/resource", settings).kind, "normal-link");
+});
+
+test("用户可信图片来源可选择包含子域名", () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    trustedImageSources: [
+      {
+        host: "cdn.example.com",
+        pathPrefix: "",
+        includeSubdomains: true,
+      },
+    ],
+  });
+
+  assert.equal(classifyUrlText("https://sub.cdn.example.com/resource", settings).kind, "image-link");
+});
+
+test("高级正则规则仍可识别查询参数图片 URL", () => {
+  assert.equal(classifyUrlText("https://example.com/resource?id=1&format=jpg", DEFAULT_SETTINGS).kind, "image-link");
 });
 
 test("混合文本不触发自动替换", () => {

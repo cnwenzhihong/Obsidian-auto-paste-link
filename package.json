@@ -1,7 +1,7 @@
 {
   "name": "obsidian-auto-paste-link",
-  "version": "0.1.0",
-  "description": "Auto format single pasted URLs as Markdown links or images in Obsidian.",
+  "version": "1.0.0",
+  "description": "Auto format pasted URLs as Markdown links, media embeds, and supported site titles in Obsidian.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -14,8 +14,16 @@
     "paste",
     "link"
   ],
-  "author": "cnwen",
+  "author": "cnwenzhihong",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cnwenzhihong/Obsidian-auto-paste-link.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cnwenzhihong/Obsidian-auto-paste-link/issues"
+  },
+  "homepage": "https://github.com/cnwenzhihong/Obsidian-auto-paste-link#readme",
   "devDependencies": {
     "@codemirror/view": "6.38.6",
     "@types/node": "latest",

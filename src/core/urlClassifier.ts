@@ -1,4 +1,8 @@
-import type { AutoPasteLinkSettings } from "../settings/pluginSettings";
+import {
+  BUILTIN_TRUSTED_IMAGE_SOURCES,
+  type AutoPasteLinkSettings,
+  type TrustedImageSource,
+} from "../settings/pluginSettings.ts";
 
 export type UrlKind = "normal-link" | "image-link" | "video-link" | "unsupported";
 
@@ -49,12 +53,35 @@ function isImageUrl(rawUrl: string, parsedUrl: URL, settings: AutoPasteLinkSetti
     return true;
   }
 
+  if (isTrustedImageSource(parsedUrl, BUILTIN_TRUSTED_IMAGE_SOURCES)) {
+    return true;
+  }
+
+  if (isTrustedImageSource(parsedUrl, settings.trustedImageSources)) {
+    return true;
+  }
+
   return settings.imageUrlPatterns.some((pattern) => {
     try {
       return new RegExp(pattern, "i").test(rawUrl);
     } catch {
       return false;
     }
+  });
+}
+
+function isTrustedImageSource(parsedUrl: URL, sources: TrustedImageSource[]): boolean {
+  const hostname = parsedUrl.hostname.toLowerCase();
+  return sources.some((source) => {
+    const hostMatches = source.includeSubdomains
+      ? hostname === source.host || hostname.endsWith(`.${source.host}`)
+      : hostname === source.host;
+
+    if (!hostMatches) {
+      return false;
+    }
+
+    return !source.pathPrefix || parsedUrl.pathname.startsWith(source.pathPrefix);
   });
 }
 

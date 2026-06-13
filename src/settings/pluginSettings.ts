@@ -7,9 +7,64 @@ export interface AutoPasteLinkSettings {
   embedImageLinks: boolean;
   embedVideoLinks: boolean;
   imageExtensions: string[];
+  trustedImageSources: TrustedImageSource[];
   imageUrlPatterns: string[];
   videoExtensions: string[];
 }
+
+export interface TrustedImageSource {
+  host: string;
+  pathPrefix: string;
+  includeSubdomains: boolean;
+}
+
+export const BUILTIN_TRUSTED_IMAGE_SOURCES: TrustedImageSource[] = [
+  {
+    host: "images.unsplash.com",
+    pathPrefix: "",
+    includeSubdomains: false,
+  },
+  {
+    host: "i.imgur.com",
+    pathPrefix: "",
+    includeSubdomains: false,
+  },
+  {
+    host: "images.steamusercontent.com",
+    pathPrefix: "",
+    includeSubdomains: false,
+  },
+  {
+    host: "pbs.twimg.com",
+    pathPrefix: "/media/",
+    includeSubdomains: false,
+  },
+  {
+    host: "i.ytimg.com",
+    pathPrefix: "/vi/",
+    includeSubdomains: false,
+  },
+  {
+    host: "img.youtube.com",
+    pathPrefix: "/vi/",
+    includeSubdomains: false,
+  },
+  {
+    host: "i0.hdslb.com",
+    pathPrefix: "/bfs/",
+    includeSubdomains: false,
+  },
+  {
+    host: "i1.hdslb.com",
+    pathPrefix: "/bfs/",
+    includeSubdomains: false,
+  },
+  {
+    host: "i2.hdslb.com",
+    pathPrefix: "/bfs/",
+    includeSubdomains: false,
+  },
+];
 
 export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
   processYamlFrontmatter: false,
@@ -29,8 +84,8 @@ export const DEFAULT_SETTINGS: AutoPasteLinkSettings = {
     "svg",
     "avif"
   ],
+  trustedImageSources: [],
   imageUrlPatterns: [
-    "^https?:\\/\\/(?:images\\.unsplash\\.com|i\\.imgur\\.com)\\/",
     "[?&](?:format|fm|type|mime)=([^&#]*)(?:jpg|jpeg|png|gif|webp|avif|svg)"
   ],
   videoExtensions: [
@@ -50,6 +105,9 @@ export function normalizeSettings(value: Partial<AutoPasteLinkSettings>): AutoPa
     embedImageLinks: value.embedImageLinks ?? DEFAULT_SETTINGS.embedImageLinks,
     embedVideoLinks: value.embedVideoLinks ?? DEFAULT_SETTINGS.embedVideoLinks,
     imageExtensions: normalizeImageExtensions(value.imageExtensions ?? DEFAULT_SETTINGS.imageExtensions),
+    trustedImageSources: normalizeTrustedImageSources(
+      value.trustedImageSources ?? DEFAULT_SETTINGS.trustedImageSources
+    ),
     imageUrlPatterns: normalizePatternList(value.imageUrlPatterns ?? DEFAULT_SETTINGS.imageUrlPatterns),
     videoExtensions: normalizeVideoExtensions(value.videoExtensions ?? DEFAULT_SETTINGS.videoExtensions),
   };
@@ -78,6 +136,34 @@ export function normalizePatternList(value: string[] | string): string[] {
   return normalizeLineList(value);
 }
 
+export function normalizeTrustedImageSources(value: TrustedImageSource[]): TrustedImageSource[] {
+  const seen = new Set<string>();
+  const result: TrustedImageSource[] = [];
+
+  for (const source of value) {
+    const host = normalizeTrustedImageSourceHost(source.host);
+    if (!host) {
+      continue;
+    }
+
+    const pathPrefix = normalizeTrustedImageSourcePathPrefix(source.pathPrefix);
+    const includeSubdomains = Boolean(source.includeSubdomains);
+    const key = `${host}\n${pathPrefix}\n${includeSubdomains}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push({
+      host,
+      pathPrefix,
+      includeSubdomains,
+    });
+  }
+
+  return result;
+}
+
 function normalizeLineList(value: string[] | string): string[] {
   const rawItems = Array.isArray(value) ? value : value.split(/[\n,]/);
   const seen = new Set<string>();
@@ -94,4 +180,29 @@ function normalizeLineList(value: string[] | string): string[] {
   }
 
   return result;
+}
+
+function normalizeTrustedImageSourceHost(value: string): string | null {
+  const rawHost = value.trim().toLowerCase();
+  if (!rawHost) {
+    return null;
+  }
+
+  let host = rawHost;
+  try {
+    host = new URL(rawHost.includes("://") ? rawHost : `https://${rawHost}`).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+
+  return /^[a-z0-9.-]+$/.test(host) ? host : null;
+}
+
+function normalizeTrustedImageSourcePathPrefix(value: string): string {
+  const pathPrefix = value.trim();
+  if (!pathPrefix || pathPrefix === "/") {
+    return "";
+  }
+
+  return pathPrefix.startsWith("/") ? pathPrefix : `/${pathPrefix}`;
 }
