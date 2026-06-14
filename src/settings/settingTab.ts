@@ -1,14 +1,17 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
+import { SUPPORTED_SITE_GROUPS, type SupportedSiteGroup } from "../core/titleResolver";
 import type AutoPasteLinkPlugin from "../main";
 import { getSettingText } from "./i18n";
 import {
   BUILTIN_TRUSTED_IMAGE_SOURCES,
+  normalizeGitHubTitleFormat,
   normalizeImageExtensions,
   normalizePatternList,
   normalizeTitleFetchTimeoutMs,
   normalizeTrustedImageSources,
+  normalizeTrustedVideoSources,
   normalizeVideoExtensions,
-  type TrustedImageSource,
+  type TrustedMediaSource,
 } from "./pluginSettings";
 
 export class AutoPasteLinkSettingTab extends PluginSettingTab {
@@ -49,9 +52,35 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
           })
       );
 
-    new Setting(containerEl)
+    const siteSupportSection = addSubsection(containerEl, text.siteSupportSubsectionName);
+    new Setting(siteSupportSection)
       .setName(text.supportedSitesName)
-      .setDesc(text.supportedSitesDesc);
+      .setDesc(createSupportedSitesDescription(SUPPORTED_SITE_GROUPS, text.language, text.supportedSitesDesc));
+
+    new Setting(siteSupportSection)
+      .setName(text.fetchGenericSiteTitleName)
+      .setDesc(text.fetchGenericSiteTitleDesc)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.fetchGenericSiteTitle).onChange(async (value) => {
+          this.plugin.settings.fetchGenericSiteTitle = value;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(siteSupportSection)
+      .setName(text.githubTitleFormatName)
+      .setDesc(text.githubTitleFormatDesc)
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("repository", text.githubTitleFormatRepository)
+          .addOption("owner-repository", text.githubTitleFormatOwnerRepository)
+          .addOption("github-owner-repository", text.githubTitleFormatGitHubOwnerRepository)
+          .setValue(this.plugin.settings.githubTitleFormat)
+          .onChange(async (value) => {
+            this.plugin.settings.githubTitleFormat = normalizeGitHubTitleFormat(value);
+            await this.plugin.saveSettings();
+          })
+      );
 
     addSection(containerEl, text.pasteBehaviorSectionName);
 
@@ -114,7 +143,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
 
     new Setting(imageSection)
       .setName(text.builtinTrustedImageSourcesName)
-      .setDesc(createTrustedImageSourcesDescription(BUILTIN_TRUSTED_IMAGE_SOURCES));
+      .setDesc(createTrustedMediaSourcesDescription(BUILTIN_TRUSTED_IMAGE_SOURCES));
 
     new Setting(imageSection)
       .setName(text.trustedImageSourcesName)
@@ -125,7 +154,7 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
           .onClick(() => {
             this.plugin.settings.trustedImageSources = [
               ...this.plugin.settings.trustedImageSources,
-              createEmptyTrustedImageSource(),
+              createEmptyTrustedMediaSource(),
             ];
             this.renderSettings();
           })
@@ -216,15 +245,87 @@ export class AutoPasteLinkSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
     );
+
+    new Setting(videoSection)
+      .setName(text.trustedVideoSourcesName)
+      .setDesc(text.trustedVideoSourcesDesc)
+      .addButton((button) =>
+        button
+          .setButtonText(text.addTrustedImageSourceButtonText)
+          .onClick(() => {
+            this.plugin.settings.trustedVideoSources = [
+              ...this.plugin.settings.trustedVideoSources,
+              createEmptyTrustedMediaSource(),
+            ];
+            this.renderSettings();
+          })
+      );
+
+    this.plugin.settings.trustedVideoSources.forEach((source, index) => {
+      new Setting(videoSection)
+        .setName(`${text.trustedImageSourceRowName} ${index + 1}`)
+        .setDesc(text.trustedImageSourceRowDesc)
+        .addText((input) =>
+          input
+            .setPlaceholder(text.trustedImageSourceHostPlaceholder)
+            .setValue(source.host)
+            .onChange(async (value) => {
+              await this.updateTrustedVideoSource(index, {
+                host: value,
+              });
+            })
+        )
+        .addText((input) =>
+          input
+            .setPlaceholder(text.trustedImageSourcePathPrefixPlaceholder)
+            .setValue(source.pathPrefix)
+            .onChange(async (value) => {
+              await this.updateTrustedVideoSource(index, {
+                pathPrefix: value,
+              });
+            })
+        )
+        .addToggle((toggle) =>
+          toggle
+            .setTooltip(text.trustedImageSourceIncludeSubdomainsText)
+            .setValue(source.includeSubdomains)
+            .onChange(async (value) => {
+              await this.updateTrustedVideoSource(index, {
+                includeSubdomains: value,
+              });
+            })
+        )
+        .addButton((button) =>
+          button
+            .setButtonText(text.deleteTrustedImageSourceButtonText)
+            .onClick(async () => {
+              this.plugin.settings.trustedVideoSources = this.plugin.settings.trustedVideoSources.filter(
+                (_, sourceIndex) => sourceIndex !== index
+              );
+              await this.plugin.saveSettings();
+              this.renderSettings();
+            })
+        );
+    });
   }
 
-  private async updateTrustedImageSource(index: number, patch: Partial<TrustedImageSource>): Promise<void> {
+  private async updateTrustedImageSource(index: number, patch: Partial<TrustedMediaSource>): Promise<void> {
     const sources = [...this.plugin.settings.trustedImageSources];
     sources[index] = {
-      ...(sources[index] ?? createEmptyTrustedImageSource()),
+      ...(sources[index] ?? createEmptyTrustedMediaSource()),
       ...patch,
     };
     this.plugin.settings.trustedImageSources = normalizeTrustedImageSources(sources);
+    await this.plugin.saveSettings();
+  }
+
+  private async updateTrustedVideoSource(index: number, patch: Partial<TrustedMediaSource>): Promise<void> {
+    const sources = [...this.plugin.settings.trustedVideoSources];
+    sources[index] = {
+      ...(sources[index] ?? createEmptyTrustedMediaSource()),
+      ...patch,
+    };
+    this.plugin.settings.trustedVideoSources = normalizeTrustedVideoSources(sources);
     await this.plugin.saveSettings();
   }
 }
@@ -239,9 +340,6 @@ function addSection(containerEl: HTMLElement, name: string): void {
 function addSubsection(containerEl: HTMLElement, name: string): HTMLElement {
   const details = containerEl.createEl("details", {
     cls: "auto-paste-link-subsection",
-    attr: {
-      open: "",
-    },
   });
   details.createEl("summary", {
     cls: "auto-paste-link-subsection-summary",
@@ -265,7 +363,28 @@ function createDescription(description: string, hint: string): DocumentFragment 
   return fragment;
 }
 
-function createTrustedImageSourcesDescription(sources: TrustedImageSource[]): DocumentFragment {
+function createSupportedSitesDescription(
+  groups: readonly SupportedSiteGroup[],
+  language: "zh" | "en",
+  description: string
+): DocumentFragment {
+  const fragment = activeDocument.createDocumentFragment();
+  fragment.append(description);
+
+  const list = activeDocument.createElement("ul");
+  for (const group of groups) {
+    const item = activeDocument.createElement("li");
+    const groupName = language === "zh" ? group.zhName : group.enName;
+    const separator = language === "zh" ? "、" : ", ";
+    item.textContent = `${groupName}: ${group.providers.map((provider) => provider.displayName).join(separator)}`;
+    list.append(item);
+  }
+
+  fragment.append(list);
+  return fragment;
+}
+
+function createTrustedMediaSourcesDescription(sources: TrustedMediaSource[]): DocumentFragment {
   const fragment = activeDocument.createDocumentFragment();
   const list = activeDocument.createElement("ul");
 
@@ -280,7 +399,7 @@ function createTrustedImageSourcesDescription(sources: TrustedImageSource[]): Do
   return fragment;
 }
 
-function createEmptyTrustedImageSource(): TrustedImageSource {
+function createEmptyTrustedMediaSource(): TrustedMediaSource {
   return {
     host: "",
     pathPrefix: "",

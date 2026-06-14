@@ -1,7 +1,7 @@
 import {
   BUILTIN_TRUSTED_IMAGE_SOURCES,
   type AutoPasteLinkSettings,
-  type TrustedImageSource,
+  type TrustedMediaSource,
 } from "../settings/pluginSettings.ts";
 
 export type UrlKind = "normal-link" | "image-link" | "video-link" | "unsupported";
@@ -53,11 +53,11 @@ function isImageUrl(rawUrl: string, parsedUrl: URL, settings: AutoPasteLinkSetti
     return true;
   }
 
-  if (isTrustedImageSource(parsedUrl, BUILTIN_TRUSTED_IMAGE_SOURCES)) {
+  if (isTrustedMediaSource(parsedUrl, BUILTIN_TRUSTED_IMAGE_SOURCES)) {
     return true;
   }
 
-  if (isTrustedImageSource(parsedUrl, settings.trustedImageSources)) {
+  if (isTrustedMediaSource(parsedUrl, settings.trustedImageSources)) {
     return true;
   }
 
@@ -70,7 +70,7 @@ function isImageUrl(rawUrl: string, parsedUrl: URL, settings: AutoPasteLinkSetti
   });
 }
 
-function isTrustedImageSource(parsedUrl: URL, sources: TrustedImageSource[]): boolean {
+function isTrustedMediaSource(parsedUrl: URL, sources: TrustedMediaSource[]): boolean {
   const hostname = parsedUrl.hostname.toLowerCase();
   return sources.some((source) => {
     const hostMatches = source.includeSubdomains
@@ -91,7 +91,11 @@ function isVideoUrl(parsedUrl: URL, settings: AutoPasteLinkSettings): boolean {
   }
 
   const extension = parsedUrl.pathname.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];
-  return extension ? settings.videoExtensions.includes(extension) : false;
+  if (extension && settings.videoExtensions.includes(extension)) {
+    return true;
+  }
+
+  return isTrustedMediaSource(parsedUrl, settings.trustedVideoSources);
 }
 
 function parseHttpUrl(value: string): URL | null {

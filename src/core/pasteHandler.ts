@@ -66,13 +66,15 @@ export class PasteHandler {
       return;
     }
 
-    if (!getSupportedTitleProvider(url)) {
+    if (!getSupportedTitleProvider(url) && !settings.fetchGenericSiteTitle) {
       return;
     }
 
     void resolveSupportedSiteTitle(url, {
       request: requestTitle,
       timeoutMs: settings.titleFetchTimeoutMs,
+      githubTitleFormat: settings.githubTitleFormat,
+      fetchGenericSiteTitle: settings.fetchGenericSiteTitle,
     }).then((title) => {
       if (!title || !isEmptyMarkdownLinkTitle(editor, insertion.titleRange!.from)) {
         return;

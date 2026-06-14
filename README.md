@@ -54,25 +54,29 @@ Video link:
 
 Automatic title fetching is intentionally limited to important supported sites:
 
-- bilibili
-- YouTube
-- Fab
-- GitHub
-- Stack Overflow
-- Stack Exchange
-- Reddit
-- Wikipedia
-- Steam
-- MDN
-- npm
-- Zhihu
-- Juejin
-- CSDN
-- WeChat Official Accounts
-- Douban
-- CNBlogs
+```text
+bilibili, YouTube, Fab, Steam
+TMDb, Letterboxd, Rotten Tomatoes, MyAnimeList, Bangumi, Spotify, Dailymotion
+GitHub, GitLab, Gitee, Stack Overflow, Stack Exchange
+Reddit, Wikipedia
+MDN, npm, PyPI, crates.io, Go Packages
+Apple Developer, Unity, Next.js, Vue.js, Node.js
+Juejin, CSDN, Tencent Cloud Developer, Alibaba Cloud Developer
+WeChat Official Accounts, Douban, CNBlogs, SegmentFault, Jianshu
+```
 
-Other websites are not fetched for titles.
+Other websites can use the generic title fetcher when the title looks clean enough.
+
+## Known Unsupported Title Sites
+
+The following sites were tested and did not expose stable, specific titles to normal plugin requests. They may return verification pages, homepage titles, empty titles, or generic app titles. For these sites, copy the title manually or select the title text before pasting the URL.
+
+```text
+IMDb, Netflix, AniList
+iQIYI, Youku, Mango TV, Maoyan
+NetEase Cloud Music, QQ Music
+SoundCloud, Twitch, TikTok
+```
 
 ## Image Detection
 
@@ -172,4 +176,23 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-The GitHub release tag must exactly match the version in `manifest.json`, for example `1.0.3` without a `v` prefix. Release assets must include `main.js`, `manifest.json`, and `styles.css`.
+The GitHub release tag must exactly match the version in `manifest.json`, for example `1.0.4` without a `v` prefix. Release assets must include `main.js`, `manifest.json`, and `styles.css`.
+
+## Adding Supported Sites With AI
+
+Only add a site-specific provider when the generic title fetcher returns a bad title and the site has a stable way to produce a cleaner one.
+
+1. Pick the closest group file in `src/core/titleProviders/groups/`.
+2. Add a small `TitleProvider` with `id`, `displayName`, `matches`, `createRequests`, and `parse`.
+3. Prefer stable APIs or oEmbed endpoints when available. Otherwise clean a predictable suffix from `og:title`, `twitter:title`, or `<title>`.
+4. Do not add sites that only return verification pages, login pages, homepage titles, or vague app titles.
+5. Register a new group in `src/core/titleProviders/providers.ts` only when no existing group fits.
+6. Add tests in `tests/core.test.ts` for host matching and title cleanup.
+7. Update the supported or unsupported site list in this README.
+8. Run:
+
+```bash
+node --experimental-default-type=module --test tests/*.test.ts
+./node_modules/.bin/tsc.CMD -noEmit -skipLibCheck
+node esbuild.config.mjs production
+```

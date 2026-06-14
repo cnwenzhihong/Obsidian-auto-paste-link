@@ -384,6 +384,27 @@ workflow 应防止 tag 和源码不一致：
 
 不要先手动创建旧 tag，再继续改源码。这样会导致 tag 指向旧提交，Release assets 和源码不一致。
 
+## 本项目快速发布协作模式
+
+本项目实际协作方式是 GPT 负责绝大多数本地和远端维护工作，包括代码修改、文档修改、版本文件更新、提交、推送、tag 状态检查和 Release 状态检查。
+
+用户默认只手动触发 GitHub Actions 里的 Release workflow。因此发布前不需要重复执行早期上架阶段的完整人工检查链路，除非改动涉及发布工作流、构建配置、Obsidian 审核报错或 GitHub Release 失败。
+
+可以降级为轻量检查的事项：
+
+- 版本检查：确认 `manifest.json.version` 和 `package.json.version` 相同，且 `versions.json` 包含新版本。
+- Release assets：默认交给 GitHub Actions 构建、签发 attestations 并上传，不手动复制或比对本地 `release/` 目录。
+- 本地构建：仅在核心逻辑、构建配置、依赖或类型定义发生变化时运行；纯文档或发布说明修改不需要跑完整构建。
+- tag 和 Release 查询：发布前确认一次即可，不要反复查询旧版本历史，除非发现不一致。
+
+不能省的事项：
+
+- 修改前先看 `git status -sb`。
+- 改版本时保持 `manifest.json`、`package.json`、`versions.json` 一致。
+- 影响核心逻辑时运行必要测试或类型检查。
+- 推送后确认远端 branch 或 tag 已更新。
+- Release workflow 跑完后确认 GitHub Release 成功生成。
+
 ## Obsidian 社区插件审核通过后
 
 审核通过后没有“发布按钮”。
@@ -434,4 +455,4 @@ node esbuild.config.mjs production
 5. 明确是否需要更新 Release assets。
 6. 不要自动提交，除非用户明确要求。
 7. 如果要发布，优先走 GitHub Actions release workflow。
-
+8. 本项目由 GPT 负责大部分修改和远端操作，用户通常只手动触发 Release Action；不要默认套用完整人工发布检查流程。
